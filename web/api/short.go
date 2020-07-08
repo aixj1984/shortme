@@ -8,8 +8,16 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/andyxning/shortme/conf"
-	"github.com/andyxning/shortme/short"
+	"net"
+
+	"time"
+
+	"shortme/conf"
+
+	"crypto/md5"
+	"encoding/hex"
+
+	"shortme/short"
 
 	"github.com/gorilla/mux"
 )
@@ -26,12 +34,64 @@ func Redirect(w http.ResponseWriter, r *http.Request) {
 		return
 	} else {
 		if len(longURL) != 0 {
+
+			cookieName := shortededURL + "_Token"
+
+			cookie, err := r.Cookie(cookieName)
+			if err != nil {
+				// 单位：秒。
+				COOKIE_MAX_MAX_AGE := time.Hour * 24 / time.Second
+				maxAge := int(COOKIE_MAX_MAX_AGE)
+				cookieValue, ipAddr := GetCookieValue(r, longURL, shortededURL)
+				uid_cookie := &http.Cookie{
+					Name:     cookieName,
+					Value:    cookieValue,
+					Path:     "/",
+					HttpOnly: false,
+					MaxAge:   maxAge,
+				}
+				http.SetCookie(w, uid_cookie)
+				//log.Println(uid_cookie)
+				go short.Shorter.SaveAccessRecord(r.Header.Get("user-agent"), longURL, shortededURL, ipAddr)
+			} else {
+				log.Println(cookie.Value)
+			}
+
 			w.Header().Set("Location", longURL)
 			w.WriteHeader(http.StatusTemporaryRedirect)
+
 		} else {
 			w.WriteHeader(http.StatusNoContent)
 		}
 	}
+}
+
+func md5V1(str string) string {
+	h := md5.New()
+	h.Write([]byte(str))
+	return hex.EncodeToString(h.Sum(nil))
+}
+
+func GetCookieValue(r *http.Request, longURL, shortededURL string) (string, string) {
+	publicIp := ""
+
+	RemoteAddr, _, _ := net.SplitHostPort(r.RemoteAddr)
+
+	if ipProxy := r.Header.Get("X-Forwarded-For"); len(ipProxy) > 0 {
+		RemoteAddr = ipProxy
+	} else if ipProxy = r.Header.Get("X-Real-Ip"); len(ipProxy) > 0 {
+		RemoteAddr = ipProxy
+	}
+	if len(RemoteAddr) > 0 {
+		publicIp = RemoteAddr
+	}
+	ua := r.Header.Get("user-agent")
+	log.Println("user-agent:", ua)
+
+	uuid := md5V1(ua + publicIp + longURL + shortededURL)
+	log.Println("user-uuid:", uuid)
+	return uuid, publicIp
+
 }
 
 func ShortURL(w http.ResponseWriter, r *http.Request) {

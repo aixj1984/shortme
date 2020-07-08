@@ -4,8 +4,9 @@ import (
 	"database/sql"
 	"log"
 
-	"github.com/andyxning/shortme/conf"
-	"github.com/andyxning/shortme/sequence"
+	"shortme/conf"
+	"shortme/sequence"
+
 	_ "github.com/go-sql-driver/mysql"
 )
 

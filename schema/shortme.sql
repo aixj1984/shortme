@@ -41,4 +41,17 @@ CREATE TABLE `short` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
+DROP TABLE IF EXISTS `access_logs`;
+CREATE TABLE `access_logs` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `long_url` varchar(10240) DEFAULT NULL,
+  `short_url` varchar(20) DEFAULT NULL,
+  `ua` text,
+  `device_model` varchar(30) DEFAULT NULL,
+  `device_version` varchar(50) DEFAULT '',
+  `ip_addr` varchar(30) DEFAULT '',
+  `create_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8;
+
 -- Dump completed on 2016-04-15 15:00:33

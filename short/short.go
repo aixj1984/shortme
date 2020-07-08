@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/andyxning/shortme/base"
-	"github.com/andyxning/shortme/conf"
-	"github.com/andyxning/shortme/sequence"
-	_ "github.com/andyxning/shortme/sequence/db"
+	"shortme/base"
+	"shortme/conf"
+	"shortme/sequence"
+	_ "shortme/sequence/db"
+	"shortme/short/libs"
+
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -142,6 +144,33 @@ func (shorter *shorter) Short(longURL string) (shortURL string, err error) {
 	}
 
 	return shortURL, nil
+}
+
+func (shorter *shorter) SaveAccessRecord(ua, longURL, shortURL, ipAddr string) {
+
+	agent_model, agent_version, err := libs.GetDeviceInfoFromUa(ua)
+	if err != nil {
+		log.Printf("GetModelFromUa Error:", err.Error())
+		return
+	}
+
+	insertSQL := fmt.Sprintf(`INSERT INTO access_logs(ua,device_model, device_version, long_url, short_url,ip_addr) VALUES(?,?, ?,?, ?,?)`)
+
+	var stmt *sql.Stmt
+	stmt, err = shorter.writeDB.Prepare(insertSQL)
+	if err != nil {
+		log.Printf("short write db prepares error. %v", err)
+		return
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(ua, agent_model, agent_version, longURL, shortURL, ipAddr)
+
+	if err != nil {
+		log.Printf("short write db insert error. %v", err)
+		return
+	}
+
 }
 
 var Shorter shorter
